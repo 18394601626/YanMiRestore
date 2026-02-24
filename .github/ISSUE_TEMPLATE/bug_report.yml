@@ -1,0 +1,61 @@
+name: Bug Report
+description: 提交一个可复现的缺陷报告
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。请尽量提供最小复现信息，便于快速定位问题。
+  - type: input
+    id: version
+    attributes:
+      label: 版本信息
+      description: 例如 `YanMiRestore 0.1.0`
+      placeholder: YanMiRestore 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 操作系统、CPU 架构、文件系统类型
+      placeholder: Windows 11 x64 / NTFS
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: 复现命令
+      description: 粘贴完整命令（请脱敏）
+      placeholder: |
+        .\YanMiRestore.exe scan --source F:\ --output E:\output --case-id CASE-001
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期结果
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际结果
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或报错信息
+      description: 请粘贴关键日志片段，避免包含敏感数据
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 检查清单
+      options:
+        - label: 我已阅读 README 与已有 Issue
+          required: true
+        - label: 我已确认不包含隐私数据或未授权取证信息
+          required: true

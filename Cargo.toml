@@ -1,0 +1,26 @@
+[package]
+name = "YanMiRestore"
+version = "0.1.0"
+edition = "2021"
+authors = ["YanMiRestore Contributors"]
+license = "MIT"
+description = "YanMiRestore safety-first data recovery tool scaffold in Rust"
+readme = "README.md"
+
+[dependencies]
+anyhow = "1.0"
+clap = { version = "4.5", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+thiserror = "2.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+indicatif = "0.17"
+filetime = "0.2"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Storage_FileSystem"] }
+
+[workspace]

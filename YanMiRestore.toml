@@ -1,0 +1,82 @@
+# YanMiRestore 默认配置
+# 可以按需调整，未出现的字段会使用程序内置默认值。
+
+[ui]
+# 终端进度条刷新频率（Hz）
+progress_refresh_hz = 20
+# 进度条动画间隔（毫秒）
+progress_tick_ms = 120
+# 双击启动且标准输入不可用时，窗口保留秒数
+startup_hold_seconds = 8
+# 扫描阶段进度条模板
+scan_progress_template = "{spinner:.green} {prefix:.bold} [{elapsed_precise}] [{bar:32.cyan/blue}] {pos}/{len} {percent:>3}% {msg}"
+# 恢复阶段进度条模板
+recover_progress_template = "{spinner:.green} {prefix:.bold} [{elapsed_precise}] [{bar:32.yellow/blue}] {pos}/{len} {percent:>3}% {msg}"
+# 进度条填充字符（至少 2 个字符）
+progress_chars = "=>-"
+# 进度条旋转帧（至少 2 项，最后一项用于结束态）
+spinner_frames = ["|", "/", "-", "\\"]
+# 扫描阶段前缀
+scan_progress_prefix = "扫描"
+# 恢复阶段前缀
+recover_progress_prefix = "恢复"
+
+[scan]
+# 逻辑回收站扫描最多保留的候选条目数
+max_logical_findings = 2000
+# 逻辑扫描时识别的回收站目录名
+recycle_dirs = ["$Recycle.Bin", "RECYCLER", "Recycler", "RECYCLED", ".Trash", ".Trashes"]
+
+[carver]
+# 签名雕刻读取源数据上限（字节）
+max_scan_bytes = 536870912
+# 每种签名最多输出候选数量
+max_items_per_signature = 200
+# jpeg 最小命中大小（字节）
+jpeg_min_size_bytes = 1024
+# jpeg 最大命中大小（字节）
+jpeg_max_size_bytes = 33554432
+# png 最小命中大小（字节）
+png_min_size_bytes = 256
+# png 最大命中大小（字节）
+png_max_size_bytes = 33554432
+# pdf 最小命中大小（字节）
+pdf_min_size_bytes = 1024
+# pdf 最大命中大小（字节）
+pdf_max_size_bytes = 134217728
+# sqlite 页信息不可用时的默认估计长度（字节）
+sqlite_fallback_size_bytes = 1048576
+# Office ZIP 末尾标记搜索窗口（字节）
+zip_search_window_bytes = 67108864
+# mp4 盒结构搜索窗口（字节）
+mp4_search_window_bytes = 268435456
+
+[fs.ntfs]
+max_findings = 5000
+max_mft_records_metadata = 20000
+max_mft_records_deep = 100000
+
+[fs.fat]
+max_findings_metadata = 5000
+max_findings_deep = 20000
+max_cluster_chain_metadata = 16384
+max_cluster_chain_deep = 131072
+max_directory_visits_metadata = 4096
+max_directory_visits_deep = 32768
+
+[fs.ext4]
+max_deleted_items_per_volume = 8000
+max_inodes_metadata = 250000
+max_inodes_deep = 2000000
+max_extent_leaf_items = 32000
+max_extent_tree_nodes = 16000
+
+[partition]
+max_gpt_entries = 4096
+max_ebr_chain_entries = 128
+
+[recovery]
+# 恢复读写缓冲区大小（字节）
+copy_buffer_size = 65536
+# 原始卷读取对齐字节数
+raw_io_alignment_bytes = 512
