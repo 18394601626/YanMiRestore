@@ -131,22 +131,6 @@ src/
   - Windows 下与源路径同卷（同盘符前缀）
 - 保留报告与清单，便于审计追踪
 
-### 常见安全报错说明
-
-如果你看到类似报错：
-
-```text
-Error: 目标路径不安全：源路径（\\.\F:）与目标路径（F:\restore）位于同一 Windows 卷
-```
-
-表示你把恢复输出目录设置在了源盘 `F:` 上。为避免覆盖待恢复数据，程序会强制拦截。
-
-请把 `--destination` 改到其他盘符，例如：
-
-```powershell
-.\YanMiRestore.exe recover --report E:\output\CASE-F-001-scan-report.json --destination G:\restore --execute
-```
-
 ## 使用示例
 
 ```bash
@@ -234,15 +218,15 @@ restore\恢复清单.json                 # 恢复执行结果清单
 
 仅可在已获得授权的设备和数据上使用本工具。
 
-## 开源协作
+## Open Source Collaboration
 
-仓库已提供基础开源治理文件：
+This repository includes the baseline open-source governance files:
 
-- 许可证：`LICENSE`
-- 贡献指南：`CONTRIBUTING.md`
-- 行为准则：`CODE_OF_CONDUCT.md`
-- 安全策略：`SECURITY.md`
-- 模板与自动化：`.github/`
+- License: `LICENSE`
+- Contribution guide: `CONTRIBUTING.md`
+- Code of conduct: `CODE_OF_CONDUCT.md`
+- Security policy: `SECURITY.md`
+- Templates and automation: `.github/`
 
 ## 自动识别设备（新增）
 
@@ -295,8 +279,4 @@ restore\恢复清单.json                 # 恢复执行结果清单
 - 该盘近期删除数据已被覆盖；
 - SSD/U盘控制器已执行 TRIM/垃圾回收；
 - 删除时间较久，元数据已复用。
-
-#   Y a n M i R e s t o r e 
- 
- 
 
