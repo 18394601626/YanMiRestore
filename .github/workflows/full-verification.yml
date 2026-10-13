@@ -1,0 +1,141 @@
+name: Clean Code rc23 full verification
+"on":
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: '1'
+      CI: 'true'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13.5'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.2'
+          cache: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.6.2'
+      - name: Prepare supplementary tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rc23-evidence"
+          rustup toolchain install 1.90.0 --profile minimal
+          echo 'RUSTUP_TOOLCHAIN=1.90.0' >> "$GITHUB_ENV"
+          npm install --global typescript@5.8.3
+          dart --disable-analytics
+          docker info > "$RUNNER_TEMP/rc23-evidence/docker-info.txt"
+      - name: Check and extract the unchanged source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '53189423cbefebe713ea18d724a25d9a3180bf7440f830e7a70d97cc920d3b8e  input/clean-code-engineering-skill-v1.1.0-rc.23.zip' | sha256sum --check --strict
+          mkdir "$RUNNER_TEMP/rc23-source"
+          unzip -q input/clean-code-engineering-skill-v1.1.0-rc.23.zip -d "$RUNNER_TEMP/rc23-source"
+          # Pin selection to the installed .NET 8 SDK without altering source files.
+          SDK8=$(dotnet --list-sdks | awk '$1 ~ /^8\.[0-9]+\.[0-9]+$/ {print $1}' | sort -V | tail -1)
+          test -n "$SDK8"
+          printf '{"sdk":{"version":"%s","rollForward":"disable"}}\n' "$SDK8" > "$RUNNER_TEMP/rc23-source/global.json"
+          # The verifier copies C# into the report tree before dotnet build.
+          # Keep the lock outside the immutable archive in BOTH ancestor trees.
+          cp "$RUNNER_TEMP/rc23-source/global.json" "$RUNNER_TEMP/rc23-evidence/global.json"
+      - name: Check SDK selection from a scratch build directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -S - <<'PY'
+          import datetime, json, os, subprocess
+          from pathlib import Path
+          evidence = Path(os.environ['RUNNER_TEMP']) / 'rc23-evidence'
+          cwd = evidence / 'sdk-selection-probe'
+          cwd.mkdir(exist_ok=True)
+          expected = json.loads((evidence / 'global.json').read_text())['sdk']['version']
+          result = {'expected': expected, 'cwd': str(cwd), 'selected': None,
+                    'matches_expected': False,
+                    'checked_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+          try:
+              process = subprocess.run(['dotnet', '--version'], cwd=cwd, text=True,
+                                       capture_output=True, timeout=30)
+              result.update(exit_code=process.returncode, selected=process.stdout.strip(),
+                            stdout=process.stdout, stderr=process.stderr)
+              result['matches_expected'] = process.returncode == 0 and process.stdout.strip() == expected
+          except (OSError, subprocess.TimeoutExpired) as error:
+              result['error'] = str(error)
+          (evidence / 'sdk-selection.json').write_text(json.dumps(result, indent=2) + '\n')
+          print(json.dumps(result, indent=2))
+          raise SystemExit(0 if result['matches_expected'] else 1)
+          PY
+      - name: Record actual tool identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -S - <<'PY'
+          import datetime, json, os, platform, subprocess, sys
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          cwd = root / 'rc23-source' / 'clean-code-skill-pack-v1.1.0-rc.23'
+          commands = [[sys.executable,'--version'], ['go','version'], ['java','-version'],
+              ['mvn','-version'], ['docker','info','--format','{{.ServerVersion}}'],
+              ['rustc','--version'], ['cargo','--version'], ['dotnet','--version'],
+              ['dart','--version'], ['node','--version'], ['tsc','--version'],
+              ['gcc','--version'], ['clang','--version'], ['gfortran','--version'],
+              ['cmake','--version'], ['ctest','--version'], ['php','--version'],
+              ['ruby','--version'], ['kotlinc','-version'], ['swift','--version'],
+              ['perl','-v'], ['bash','--version']]
+          rows=[]
+          for cmd in commands:
+              try:
+                  p=subprocess.run(cmd,cwd=cwd,text=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=60)
+                  rows.append({'command':cmd,'exit_code':p.returncode,'stdout':p.stdout,'stderr':p.stderr})
+              except (OSError,subprocess.TimeoutExpired) as exc:
+                  rows.append({'command':cmd,'exit_code':None,'error':str(exc)})
+          result={'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'platform':platform.platform(),'commands':rows}
+          (root/'rc23-evidence'/'tool-identities.json').write_text(json.dumps(result,ensure_ascii=False,indent=2))
+          # The original verifier still runs, even if an identity probe fails.
+          # It will retain BLOCKED / failure rather than silently omit that stage.
+          PY
+      - name: Run the original 14 stages
+        shell: bash
+        run: |
+          set -uo pipefail
+          cd "$RUNNER_TEMP/rc23-source/clean-code-skill-pack-v1.1.0-rc.23"
+          python -S verify.py --plan > "$RUNNER_TEMP/rc23-evidence/plan.json"
+          python -S verify.py --profile full --output "$RUNNER_TEMP/rc23-evidence/full" \
+            > "$RUNNER_TEMP/rc23-evidence/stdout.log" \
+            2> "$RUNNER_TEMP/rc23-evidence/stderr.log"
+          result=$?
+          printf '%s\n' "$result" > "$RUNNER_TEMP/rc23-evidence/process-exit-code.txt"
+          cat "$RUNNER_TEMP/rc23-evidence/stdout.log"
+          cat "$RUNNER_TEMP/rc23-evidence/stderr.log" >&2
+          # Exit 2 remains a non-green CI result. No continue-on-error or retry.
+          exit "$result"
+      - name: Preserve reports on success, failure or blocked stages
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: clean-code-rc23-full-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/rc23-evidence/
+          if-no-files-found: warn
+          retention-days: 14
